@@ -28,7 +28,7 @@ $ export OPENPOSE_HOME='{path/to/your/openpose/home}'
 $ sudo apt-get install ros-indigo-image-common ros-indigo-vision-opencv ros-indigo-video-stream-opencv ros-indigo-image-view
 ```
 
-### Caktkin Build 
+### Catkin Build 
 
 ```
 $ cd src
