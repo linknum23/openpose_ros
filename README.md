@@ -3,6 +3,14 @@ CMU's Openpose for ROS
 
 ![posefacehands](pose_face_hands.gif)
 
+## Update Information
+
+I re-implemented cmu's openpose in tensorflow with some modifications.
+
+Especially, using Mobilenet's 'Depthwise Separable Convolution', I improved it to run in realtime even in an low-computation embedded deivce or only-cpu environment.
+
+See : https://github.com/ildoonet/tf-openpose
+
 ## Implementation
 
 - [X] Broadcasting Ros Message
