@@ -48,8 +48,8 @@ add_executable(${PROJECT_NAME} src/openpose_ros_node.cpp)
 # Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
-  ${OPENPOSE_DIR}/build/lib/libopenpose.so
-  ${OPENPOSE_DIR}/3rdparty/caffe/.build_release/lib/libcaffe.so
+  ${OPENPOSE_DIR}/build/src/openpose/libopenpose.so
+  ${OPENPOSE_DIR}/build/caffe/lib/libcaffe.so
   gflags
 )
 

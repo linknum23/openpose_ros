@@ -21,7 +21,7 @@
 #include <cstdio> // sscanf
 #include <cstdlib>
 #include <string>
-#include <thread> // std::this_thread
+//#include <thread> // std::this_thread
 #include <vector>
 // Other 3rdpary depencencies
 #include <gflags/gflags.h> // DEFINE_bool, DEFINE_int32, DEFINE_int64, DEFINE_uint64, DEFINE_double, DEFINE_string
@@ -75,7 +75,7 @@ DEFINE_string(resolution,               "640x480",     "The image resolution (di
                                                         " default images resolution.");
 DEFINE_int32(num_gpu,                   -1,             "The number of GPU devices to use. If negative, it will use all the available GPUs in your"
                                                         " machine.");
-DEFINE_int32(num_gpu_start,             1,              "GPU device start number.");
+DEFINE_int32(num_gpu_start,             0,              "GPU device start number.");
 DEFINE_int32(keypoint_scale,            0,              "Scaling of the (x,y) coordinates of the final pose data array, i.e. the scale of the (x,y)"
                                                         " coordinates that will be saved with the `write_keypoint` & `write_keypoint_json` flags."
                                                         " Select `0` to scale it to the original source resolution, `1`to scale it to the net output"
@@ -84,8 +84,18 @@ DEFINE_int32(keypoint_scale,            0,              "Scaling of the (x,y) co
                                                         " with `num_scales` and `scale_gap`.");
 // OpenPose Body Pose
 DEFINE_string(model_pose,               "COCO",         "Model to be used (e.g. COCO, MPI, MPI_4_layers).");
-DEFINE_string(net_resolution,           "320x320",      "Multiples of 16. If it is increased, the accuracy usually increases. If it is decreased,"
-                                                        " the speed increases.");
+//DEFINE_string(net_resolution,           "320x320",      "Multiples of 16. If it is increased, the accuracy usually increases. If it is decreased,"
+ //                                                       " the speed increases.");
+
+DEFINE_string(net_resolution,           "-1x368",       "Multiples of 16. If it is increased, the accuracy potentially increases. If it is"
+                                                        " decreased, the speed increases. For maximum speed-accuracy balance, it should keep the"
+                                                        " closest aspect ratio possible to the images or videos to be processed. Using `-1` in"
+                                                        " any of the dimensions, OP will choose the optimal aspect ratio depending on the user's"
+                                                        " input value. E.g. the default `-1x368` is equivalent to `656x368` in 16:9 resolutions,"
+                                                        " e.g. full HD (1980x1080) and HD (1280x720) resolutions.");
+
+
+
 DEFINE_int32(num_scales,                1,              "Number of scales to average.");
 DEFINE_double(scale_gap,                0.3,            "Scale gap between scales. No effect unless num_scales>1. Initial scale is always 1. If you"
                                                         " want to change the initial scale, you actually want to multiply the `net_resolution` by"
@@ -155,6 +165,17 @@ DEFINE_string(write_heatmaps_format,    "png",          "File extension and form
                                                         " Recommended `png` or any compressed and lossless format.");
 
 DEFINE_string(result_image_topic,              "",          "topic name for publish processed/annotated image(usefule for debugging)");
+
+
+DEFINE_double(render_threshold,         0.05,           "Only estimated keypoints whose score confidences are higher than this threshold will be"
+                                                        " rendered. Generally, a high threshold (> 0.5) will only render very clear body parts;"
+                                                        " while small thresholds (~0.1) will also output guessed and occluded keypoints, but also"
+                                                        " more false positives (i.e. wrong detections).");
+DEFINE_int32(scale_number,              1,              "Number of scales to average.");
+
+DEFINE_string(output_resolution,        "-1x-1",        "The image resolution (display and output). Use \"-1x-1\" to force the program to use the"
+                                                        " input image resolution.");
+
 
 op::PoseModel gflagToPoseModel(const std::string& poseModeString)
 {
@@ -259,22 +280,27 @@ std::tuple<op::Point<int>, op::Point<int>, op::Point<int>, op::Point<int>, op::P
     return std::make_tuple(outputSize, netInputSize, faceNetInputSize, handNetInputSize, poseModel, keypointScale, heatMapTypes);
 }
 
-op::Point<int> outputSize;
-op::Point<int> netInputSize;
+op::Point<int> outputSize= op::flagsToPoint(FLAGS_output_resolution, "-1x-1");
+op::Point<int> netInputSize= op::flagsToPoint(FLAGS_net_resolution, "-1x368");
 op::Point<int> netOutputSize;
 op::Point<int> faceNetInputSize;
 op::Point<int> handNetInputSize;
-op::PoseModel poseModel;
 op::ScaleMode keypointScale;
 std::vector<op::HeatMapType> heatMapTypes;
 
-op::CvMatToOpInput *cvMatToOpInput;
+const auto poseModel = op::flagsToPoseModel(FLAGS_model_pose);
+op::CvMatToOpInput cvMatToOpInput{poseModel};
 op::CvMatToOpOutput *cvMatToOpOutput;
-op::PoseExtractorCaffe *poseExtractorCaffe;
-op::PoseRenderer *poseRenderer;
+op::PoseExtractorCaffe poseExtractorCaffe{poseModel, FLAGS_model_folder, FLAGS_num_gpu_start};
+//op::PoseRenderer *poseRenderer;
+op::PoseCpuRenderer poseRenderer{poseModel, (float)FLAGS_render_threshold, !FLAGS_disable_blending,
+                                     (float)FLAGS_alpha_pose};
+op::ScaleAndSizeExtractor scaleAndSizeExtractor(netInputSize, outputSize, FLAGS_scale_number, FLAGS_scale_gap);
+
 op::FaceDetector *faceDetector;
 op::FaceExtractor *faceExtractor;
 op::FaceRenderer *faceRenderer;
+
 op::OpOutputToCvMat *opOutputToCvMat;
 
 int init_openpose()
@@ -287,24 +313,30 @@ int init_openpose()
     const auto timerBegin = std::chrono::high_resolution_clock::now();
 
     // Applying user defined configuration
-    std::tie(outputSize, netInputSize, faceNetInputSize, handNetInputSize, poseModel, keypointScale,
-             heatMapTypes) = gflagsToOpParameters();
+    //std::tie(outputSize, netInputSize, faceNetInputSize, handNetInputSize, poseModel, keypointScale,
+    //         heatMapTypes) = gflagsToOpParameters();
     netOutputSize = netInputSize;
 
     // Initialize
-    cvMatToOpInput = new op::CvMatToOpInput(netInputSize, FLAGS_num_scales, (float)FLAGS_scale_gap);
-    cvMatToOpOutput = new op::CvMatToOpOutput(outputSize);
-    poseExtractorCaffe = new op::PoseExtractorCaffe(netInputSize, netOutputSize, outputSize, FLAGS_num_scales, poseModel, FLAGS_model_folder, FLAGS_num_gpu_start);
-    poseRenderer = new op::PoseRenderer(netOutputSize, outputSize, poseModel, nullptr, !FLAGS_disable_blending, (float)FLAGS_alpha_pose);
-    faceDetector = new op::FaceDetector(poseModel);
-    faceExtractor = new op::FaceExtractor(faceNetInputSize, faceNetInputSize, FLAGS_model_folder, FLAGS_num_gpu_start);
-    faceRenderer = new op::FaceRenderer(netOutputSize, (float)FLAGS_alpha_pose, (float) 0.7);
-    opOutputToCvMat = new op::OpOutputToCvMat(outputSize);
+    //cvMatToOpInput = new op::CvMatToOpInput(netInputSize, FLAGS_num_scales, (float)FLAGS_scale_gap);
+   
+    //cvMatToOpOutput = new op::CvMatToOpOutput(outputSize);
+    cvMatToOpOutput = new op::CvMatToOpOutput();
+    //poseExtractorCaffe = new op::PoseExtractorCaffe(netInputSize, netOutputSize, outputSize, FLAGS_num_scales, poseModel, FLAGS_model_folder, FLAGS_num_gpu_start);
+    
+    //poseRenderer = new op::PoseRenderer(netOutputSize, outputSize, poseModel, nullptr, !FLAGS_disable_blending, (float)FLAGS_alpha_pose);
+    
+    //faceDetector = new op::FaceDetector(poseModel);
+    //faceExtractor = new op::FaceExtractor(faceNetInputSize, faceNetInputSize, FLAGS_model_folder, FLAGS_num_gpu_start);
+    //faceRenderer = new op::FaceRenderer(netOutputSize, (float)FLAGS_alpha_pose, (float) 0.7);
+    //opOutputToCvMat = new op::OpOutputToCvMat(outputSize);
+    opOutputToCvMat = new op::OpOutputToCvMat();
 
-    poseExtractorCaffe->initializationOnThread();
-    poseRenderer->initializationOnThread();
-    faceExtractor->initializationOnThread();
-    faceRenderer->initializationOnThread();
+    poseExtractorCaffe.initializationOnThread();
+    poseRenderer.initializationOnThread();
+    //faceExtractor->initializationOnThread();
+    //faceRenderer->initializationOnThread();
+    
 
     // Measuring total time
     const auto now = std::chrono::high_resolution_clock::now();
@@ -326,20 +358,43 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     }
     if (cv_ptr->image.empty()) return;
 
-    op::Array<float> netInputArray;
+    //op::Array<float> netInputArray;
     std::vector<float> scaleRatios;
-    op::Array<float> outputArray;
+    //op::Array<float> outputArray;
 
     // process
-    std::tie(netInputArray, scaleRatios) = cvMatToOpInput->format(cv_ptr->image);
+    const op::Point<int> imageSize{cv_ptr->image.cols, cv_ptr->image.rows};
+    std::vector<double> scaleInputToNetInputs;
+    std::vector<op::Point<int>> netInputSizes;
     double scaleInputToOutput;
-    std::tie(scaleInputToOutput, outputArray) = cvMatToOpOutput->format(cv_ptr->image);
+    op::Point<int> outputResolution;
+    std::tie(scaleInputToNetInputs, netInputSizes, scaleInputToOutput, outputResolution)
+        = scaleAndSizeExtractor.extract(imageSize);
+    // Step 3 - Format input image to OpenPose input and output formats
+    const auto netInputArray = cvMatToOpInput.createArray(cv_ptr->image, scaleInputToNetInputs, netInputSizes);
+    auto outputArray = cvMatToOpOutput->createArray(cv_ptr->image, scaleInputToOutput, outputResolution);
+
+
+
+    
+    //std::tie(netInputArray, scaleRatios) = cvMatToOpInput.format(cv_ptr->image);
+    //double scaleInputToOutput;
+    //td::tie(scaleInputToOutput, outputArray) = cvMatToOpOutput.format(cv_ptr->image);
+
     // Step 3 - Estimate poseKeypoints
-    poseExtractorCaffe->forwardPass(netInputArray, {cv_ptr->image.cols, cv_ptr->image.rows}, scaleRatios);
-    const auto poseKeypoints = poseExtractorCaffe->getPoseKeypoints();
-    const auto faces = faceDetector->detectFaces(poseKeypoints, scaleInputToOutput);
-    faceExtractor->forwardPass(faces, cv_ptr->image, scaleInputToOutput);
-    const auto faceKeypoints = faceExtractor->getFaceKeypoints();
+
+    poseExtractorCaffe.forwardPass(netInputArray, imageSize, scaleInputToNetInputs);
+    const auto poseKeypoints = poseExtractorCaffe.getPoseKeypoints();
+
+
+    //poseExtractorCaffe->forwardPass(netInputArray, {cv_ptr->image.cols, cv_ptr->image.rows}, scaleRatios);
+    //const auto poseKeypoints = poseExtractorCaffe.getPoseKeypoints();
+    //const auto faces = faceDetector->detectFaces(poseKeypoints, scaleInputToOutput);
+    //faceExtractor->forwardPass(faces, cv_ptr->image, scaleInputToOutput);
+    //const auto faceKeypoints = faceExtractor->getFaceKeypoints();
+
+    
+
 
     // publish annotations.
     openpose_ros_msgs::Persons persons;
@@ -367,10 +422,14 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     // publish result image with annotation.
     if (!FLAGS_result_image_topic.empty()) {
-        poseRenderer->renderPose(outputArray, poseKeypoints);
-        faceRenderer->renderFace(outputArray, faceKeypoints);
 
-        auto outputImage = opOutputToCvMat->formatToCvMat(outputArray);
+        poseRenderer.renderPose(outputArray, poseKeypoints, scaleInputToOutput);
+    // Step 6 - OpenPose output format to cv::Mat
+    auto outputImage = opOutputToCvMat->formatToCvMat(outputArray);
+        //poseRenderer.renderPose(outputArray, poseKeypoints);
+       // faceRenderer->renderFace(outputArray, faceKeypoints);
+
+        //auto outputImage = opOutputToCvMat->formatToCvMat(outputArray);
 
         sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", outputImage).toImageMsg();
         publish_result.publish(msg);
@@ -386,7 +445,8 @@ int main(int argc, char *argv[])
     FLAGS_num_gpu = getParam(local_nh, "num_gpu", -1);
     FLAGS_num_gpu_start = getParam(local_nh, "num_gpu_start", 1);
     FLAGS_model_pose = getParam(local_nh, "model_pose", std::string("COCO"));
-    FLAGS_net_resolution = getParam(local_nh, "net_resolution", std::string("640x480"));
+    //FLAGS_net_resolution = getParam(local_nh, "net_resolution", std::string("640x480"));
+    FLAGS_net_resolution = getParam(local_nh, "net_resolution", std::string("-1x480"));
     FLAGS_face = getParam(local_nh, "face", false);
     FLAGS_no_display = getParam(local_nh, "no_display", false);
 
