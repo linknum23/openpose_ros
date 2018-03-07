@@ -32,7 +32,7 @@
 // Option b) Manually importing the desired modules. Recommended if you only intend to use a few modules.
 // #include <openpose/core/headers.hpp>
 // #include <openpose/experimental/headers.hpp>
-// #include <openpose/face/headers.hpp>
+#include <openpose/face/headers.hpp>
 // #include <openpose/filestream/headers.hpp>
 // #include <openpose/gui/headers.hpp>
 // #include <openpose/pose/headers.hpp>
@@ -114,6 +114,20 @@ DEFINE_bool(face,                       false,          "Enables face keypoint d
 DEFINE_string(face_net_resolution,      "160x160",      "Multiples of 16. Analogous to `net_resolution` but applied to the face keypoint detector."
                                                         " 320x320 usually works fine while giving a substantial speed up when multiple faces on the"
                                                         " image.");
+
+// OpenPose Rendering Face
+DEFINE_double(face_render_threshold,    0.4,            "Analogous to `render_threshold`, but applied to the face keypoints.");
+DEFINE_int32(face_render,               -1,             "Analogous to `render_pose` but applied to the face. Extra option: -1 to use the same"
+                                                        " configuration that `render_pose` is using.");
+DEFINE_double(face_alpha_pose,          0.6,            "Analogous to `alpha_pose` but applied to face.");
+DEFINE_double(face_alpha_heatmap,       0.7,            "Analogous to `alpha_heatmap` but applied to face.");
+
+
+
+
+
+
+
 // OpenPose Hand
 DEFINE_bool(hand,                       false,          "Enables hand keypoint detection. It will share some parameters from the body pose, e.g."
                                                         " `model_folder`.");
@@ -308,28 +322,24 @@ int init_openpose()
     // logging_level
     op::check(0 <= FLAGS_logging_level && FLAGS_logging_level <= 255, "Wrong logging_level value.", __LINE__, __FUNCTION__, __FILE__);
     op::ConfigureLog::setPriorityThreshold((op::Priority)FLAGS_logging_level);
-    // op::ConfigureLog::setPriorityThreshold(op::Priority::None); // To print all logging messages
+   
 
     const auto timerBegin = std::chrono::high_resolution_clock::now();
 
     // Applying user defined configuration
-    //std::tie(outputSize, netInputSize, faceNetInputSize, handNetInputSize, poseModel, keypointScale,
-    //         heatMapTypes) = gflagsToOpParameters();
+   
     netOutputSize = netInputSize;
 
     // Initialize
-    //cvMatToOpInput = new op::CvMatToOpInput(netInputSize, FLAGS_num_scales, (float)FLAGS_scale_gap);
-   
-    //cvMatToOpOutput = new op::CvMatToOpOutput(outputSize);
+    
     cvMatToOpOutput = new op::CvMatToOpOutput();
-    //poseExtractorCaffe = new op::PoseExtractorCaffe(netInputSize, netOutputSize, outputSize, FLAGS_num_scales, poseModel, FLAGS_model_folder, FLAGS_num_gpu_start);
     
-    //poseRenderer = new op::PoseRenderer(netOutputSize, outputSize, poseModel, nullptr, !FLAGS_disable_blending, (float)FLAGS_alpha_pose);
-    
+    //FIME face not currently tested
+   
     //faceDetector = new op::FaceDetector(poseModel);
-    //faceExtractor = new op::FaceExtractor(faceNetInputSize, faceNetInputSize, FLAGS_model_folder, FLAGS_num_gpu_start);
-    //faceRenderer = new op::FaceRenderer(netOutputSize, (float)FLAGS_alpha_pose, (float) 0.7);
-    //opOutputToCvMat = new op::OpOutputToCvMat(outputSize);
+    //faceExtractor = new op::FaceExtractorCaffe(faceNetInputSize, faceNetInputSize, FLAGS_model_folder, FLAGS_num_gpu_start);
+    //faceRenderer = new op::FaceCpuRenderer(FLAGS_face_render_threshold, FLAGS_face_alpha_pose, FLAGS_face_alpha_heatmap);
+    
     opOutputToCvMat = new op::OpOutputToCvMat();
 
     poseExtractorCaffe.initializationOnThread();
@@ -358,9 +368,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     }
     if (cv_ptr->image.empty()) return;
 
-    //op::Array<float> netInputArray;
+
     std::vector<float> scaleRatios;
-    //op::Array<float> outputArray;
+    
 
     // process
     const op::Point<int> imageSize{cv_ptr->image.cols, cv_ptr->image.rows};
@@ -376,19 +386,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
 
 
-    
-    //std::tie(netInputArray, scaleRatios) = cvMatToOpInput.format(cv_ptr->image);
-    //double scaleInputToOutput;
-    //td::tie(scaleInputToOutput, outputArray) = cvMatToOpOutput.format(cv_ptr->image);
 
     // Step 3 - Estimate poseKeypoints
 
     poseExtractorCaffe.forwardPass(netInputArray, imageSize, scaleInputToNetInputs);
     const auto poseKeypoints = poseExtractorCaffe.getPoseKeypoints();
 
-
-    //poseExtractorCaffe->forwardPass(netInputArray, {cv_ptr->image.cols, cv_ptr->image.rows}, scaleRatios);
-    //const auto poseKeypoints = poseExtractorCaffe.getPoseKeypoints();
     //const auto faces = faceDetector->detectFaces(poseKeypoints, scaleInputToOutput);
     //faceExtractor->forwardPass(faces, cv_ptr->image, scaleInputToOutput);
     //const auto faceKeypoints = faceExtractor->getFaceKeypoints();
