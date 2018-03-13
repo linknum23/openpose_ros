@@ -48,8 +48,11 @@
 #include <openpose_ros_msgs/PersonDetection.h>
 #include "openpose_ros_common.hpp"
 
+#include "openpose_ros_srvs/DetectPeoplePoseFromImg.h"
+
 image_transport::Publisher publish_result;
 ros::Publisher publish_pose;
+ros::ServiceServer pose_srv;
 
 // See all the available parameter options withe the `--help` flag. E.g. `./build/examples/openpose/openpose.bin --help`.
 // Note: This command will show you flags for other unnecessary 3rdparty files. Check only the flags for the OpenPose
@@ -357,21 +360,10 @@ int init_openpose()
     return 0;
 }
 
-void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
+
+openpose_ros_msgs::Persons processImgForPoseDetection(cv_bridge::CvImagePtr &cv_ptr){
     ros::Time t = ros::Time::now();
-
-    cv_bridge::CvImagePtr cv_ptr;
-    try {
-        cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
-    } catch (cv_bridge::Exception& e) {
-        return;
-    }
-    if (cv_ptr->image.empty()) return;
-
-
     std::vector<float> scaleRatios;
-    
-
     // process
     const op::Point<int> imageSize{cv_ptr->image.cols, cv_ptr->image.rows};
     std::vector<double> scaleInputToNetInputs;
@@ -421,7 +413,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
         }
         persons.persons.push_back(person);
     }
-    publish_pose.publish(persons);
+
 
     // publish result image with annotation.
     if (!FLAGS_result_image_topic.empty()) {
@@ -437,6 +429,39 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
         sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", outputImage).toImageMsg();
         publish_result.publish(msg);
     }
+    return persons;
+}
+
+
+void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
+    ros::Time t = ros::Time::now();
+
+    cv_bridge::CvImagePtr cv_ptr;
+    try {
+        cv_ptr = cv_bridge::toCvCopy(msg, "bgr8");
+    } catch (cv_bridge::Exception& e) {
+        return;
+    }
+    if (cv_ptr->image.empty()) return;
+
+    processImgForPoseDetection(cv_ptr);
+
+}
+
+bool peoplePoseFromImg(openpose_ros_srvs::DetectPeoplePoseFromImg::Request  &req,
+         openpose_ros_srvs::DetectPeoplePoseFromImg::Response &res)
+{
+    cv_bridge::CvImagePtr cv_ptr;
+    try {
+        cv_ptr = cv_bridge::toCvCopy(req.img, "bgr8");
+    } catch (cv_bridge::Exception& e) {
+        return false;
+    }
+    if (cv_ptr->image.empty()) return false;
+    
+    openpose_ros_msgs::Persons persons=processImgForPoseDetection(cv_ptr);
+    res.personList=persons;
+    return true;
 }
 
 int main(int argc, char *argv[])
@@ -467,6 +492,7 @@ int main(int argc, char *argv[])
         publish_result = img_t.advertise(FLAGS_result_image_topic, 1);
     }
     publish_pose = nh.advertise<openpose_ros_msgs::Persons>("/openpose/pose", 1);
+    pose_srv = nh.advertiseService("people_pose_from_img", peoplePoseFromImg);
 
     ros::spin();
     return 0; 

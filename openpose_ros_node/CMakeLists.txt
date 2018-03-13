@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   image_transport
   openpose_ros_msgs
+  openpose_ros_srvs
 )
 
 find_package(CUDA REQUIRED)
@@ -23,6 +24,7 @@ find_package(gflags REQUIRED)
 catkin_package(
   CATKIN_DEPENDS
     std_msgs
+    openpose_ros_srvs
 )
 
 set(OPENPOSE_DIR "$ENV{OPENPOSE_HOME}")
