@@ -315,7 +315,7 @@ op::PoseCpuRenderer poseRenderer{poseModel, (float)FLAGS_render_threshold, !FLAG
 op::ScaleAndSizeExtractor scaleAndSizeExtractor(netInputSize, outputSize, FLAGS_scale_number, FLAGS_scale_gap);
 
 op::FaceDetector *faceDetector;
-op::FaceExtractor *faceExtractor;
+op::FaceExtractorNet *faceExtractor;
 op::FaceRenderer *faceRenderer;
 
 op::OpOutputToCvMat *opOutputToCvMat;
