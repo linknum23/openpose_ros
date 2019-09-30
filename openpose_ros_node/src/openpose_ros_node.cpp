@@ -315,7 +315,7 @@ op::PoseCpuRenderer poseRenderer{poseModel, (float)FLAGS_render_threshold, !FLAG
 op::ScaleAndSizeExtractor scaleAndSizeExtractor(netInputSize, outputSize, FLAGS_scale_number, FLAGS_scale_gap);
 
 op::FaceDetector *faceDetector;
-op::FaceExtractorNet *faceExtractor;
+op::FaceExtractor *faceExtractor;
 op::FaceRenderer *faceRenderer;
 
 op::OpOutputToCvMat *opOutputToCvMat;
@@ -325,31 +325,31 @@ int init_openpose()
     // logging_level
     op::check(0 <= FLAGS_logging_level && FLAGS_logging_level <= 255, "Wrong logging_level value.", __LINE__, __FUNCTION__, __FILE__);
     op::ConfigureLog::setPriorityThreshold((op::Priority)FLAGS_logging_level);
-   
+
 
     const auto timerBegin = std::chrono::high_resolution_clock::now();
 
     // Applying user defined configuration
-   
+
     netOutputSize = netInputSize;
 
     // Initialize
-    
+
     cvMatToOpOutput = new op::CvMatToOpOutput();
-    
+
     //FIME face not currently tested
-   
+
     //faceDetector = new op::FaceDetector(poseModel);
     //faceExtractor = new op::FaceExtractorCaffe(faceNetInputSize, faceNetInputSize, FLAGS_model_folder, FLAGS_num_gpu_start);
     //faceRenderer = new op::FaceCpuRenderer(FLAGS_face_render_threshold, FLAGS_face_alpha_pose, FLAGS_face_alpha_heatmap);
-    
+
     opOutputToCvMat = new op::OpOutputToCvMat();
 
     poseExtractorCaffe.initializationOnThread();
     poseRenderer.initializationOnThread();
     //faceExtractor->initializationOnThread();
     //faceRenderer->initializationOnThread();
-    
+
 
     // Measuring total time
     const auto now = std::chrono::high_resolution_clock::now();
@@ -388,7 +388,7 @@ openpose_ros_msgs::Persons processImgForPoseDetection(cv_bridge::CvImagePtr &cv_
     //faceExtractor->forwardPass(faces, cv_ptr->image, scaleInputToOutput);
     //const auto faceKeypoints = faceExtractor->getFaceKeypoints();
 
-    
+
 
 
     // publish annotations.
@@ -396,7 +396,7 @@ openpose_ros_msgs::Persons processImgForPoseDetection(cv_bridge::CvImagePtr &cv_
     persons.rostime = t;
     persons.image_w = outputSize.x;
     persons.image_h = outputSize.y;
-    
+
     const int num_people = poseKeypoints.getSize(0);
     const int num_bodyparts = poseKeypoints.getSize(1);
 
@@ -458,7 +458,7 @@ bool peoplePoseFromImg(openpose_ros_srvs::DetectPeoplePoseFromImg::Request  &req
         return false;
     }
     if (cv_ptr->image.empty()) return false;
-    
+
     openpose_ros_msgs::Persons persons=processImgForPoseDetection(cv_ptr);
     res.personList=persons;
     return true;
@@ -483,7 +483,7 @@ int main(int argc, char *argv[])
 
     // prepare model
     init_openpose();
-  
+
     // subscribe image
     ros::NodeHandle nh;
     image_transport::ImageTransport img_t(nh);
@@ -495,5 +495,5 @@ int main(int argc, char *argv[])
     pose_srv = nh.advertiseService("people_pose_from_img", peoplePoseFromImg);
 
     ros::spin();
-    return 0; 
+    return 0;
 }
