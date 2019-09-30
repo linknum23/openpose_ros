@@ -46,12 +46,14 @@
 #include <openpose_ros_msgs/Persons.h>
 #include <openpose_ros_msgs/BodyPartDetection.h>
 #include <openpose_ros_msgs/PersonDetection.h>
+#include <openpose_ros_msgs/PersonsImgPose.h>
 #include "openpose_ros_common.hpp"
 
 #include "openpose_ros_srvs/DetectPeoplePoseFromImg.h"
 
 image_transport::Publisher publish_result;
 ros::Publisher publish_pose;
+ros::Publisher publish_pose_img;
 ros::ServiceServer pose_srv;
 
 // See all the available parameter options withe the `--help` flag. E.g. `./build/examples/openpose/openpose.bin --help`.
@@ -414,7 +416,7 @@ openpose_ros_msgs::Persons processImgForPoseDetection(cv_bridge::CvImagePtr &cv_
         persons.persons.push_back(person);
     }
 
-
+    sensor_msgs::ImagePtr msg;
     // publish result image with annotation.
     if (!FLAGS_result_image_topic.empty()) {
 
@@ -428,7 +430,15 @@ openpose_ros_msgs::Persons processImgForPoseDetection(cv_bridge::CvImagePtr &cv_
 
         sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", outputImage).toImageMsg();
         publish_result.publish(msg);
+
+        openpose_ros_msgs::PersonsImgPose pAndImg;
+        pAndImg.persons=persons;
+        pAndImg.image=*msg;
+        publish_pose_img.publish(pAndImg);
     }
+
+    
+
     return persons;
 }
 
@@ -444,7 +454,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     }
     if (cv_ptr->image.empty()) return;
 
-    processImgForPoseDetection(cv_ptr);
+    //processImgForPoseDetection(cv_ptr);
+     publish_pose.publish(processImgForPoseDetection(cv_ptr));
+     
 
 }
 
@@ -492,6 +504,7 @@ int main(int argc, char *argv[])
         publish_result = img_t.advertise(FLAGS_result_image_topic, 1);
     }
     publish_pose = nh.advertise<openpose_ros_msgs::Persons>("/openpose/pose", 1);
+    publish_pose_img = nh.advertise<openpose_ros_msgs::PersonsImgPose>("/openpose/pose_and_img", 1);
     pose_srv = nh.advertiseService("people_pose_from_img", peoplePoseFromImg);
 
     ros::spin();

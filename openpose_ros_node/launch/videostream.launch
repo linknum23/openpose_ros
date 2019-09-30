@@ -5,7 +5,7 @@
    <arg name="video_height" default="480" />
    <arg name="video_visualize" default="false" />
 
-   <include file="$(find video_stream_opencv)/launch/camera.launch" required="true">
+   <include file="$(find video_stream_opencv)/launch/camera.launch" >
         <!-- node name and ros graph name -->
         <arg name="camera_name" value="videofile" />
         <!-- means video device 0, /dev/video0 -->
