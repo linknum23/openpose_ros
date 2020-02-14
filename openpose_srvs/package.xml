@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>openpose_ros_examples</name>
+  <name>openpose_srvs</name>
   <version>0.1.0</version>
   <description>ROS Services Package for CMU's Openpose</description>
 
@@ -10,20 +10,19 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  
+  <build_depend>message_generation</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
-  <build_depend>openpose_ros_srvs</build_depend>
 
   
 
-<build_depend>openpose_ros_msgs</build_depend>
+<build_depend>openpose_msgs</build_depend>
   
 
-  <run_depend>openpose_ros_srvs</run_depend>
-  
+  <run_depend>message_generation</run_depend>
+  <run_depend>message_runtime</run_depend>
   <run_depend>std_msgs</run_depend>
-  <run_depend>openpose_ros_msgs</run_depend>
+  <run_depend>openpose_msgs</run_depend>
   <run_depend>sensor_msgs</run_depend>
 
 </package>

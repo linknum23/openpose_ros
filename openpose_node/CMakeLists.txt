@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(openpose_ros_node)
+project(openpose_node)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/Modules/")
 message(STATUS "CMAKE Module Path at ${CMAKE_MODULE_PATH}")
@@ -14,8 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   sensor_msgs
   image_transport
-  openpose_ros_msgs
-  openpose_ros_srvs
+  openpose_msgs
+  openpose_srvs
 )
 
 find_package(CUDA REQUIRED)
@@ -24,7 +24,7 @@ find_package(gflags REQUIRED)
 catkin_package(
   CATKIN_DEPENDS
     std_msgs
-    openpose_ros_srvs
+    openpose_srvs
 )
 
 set(OPENPOSE_DIR "$ENV{OPENPOSE_HOME}")
@@ -45,7 +45,7 @@ include_directories(
   ${OPENPOSE_DIR}/3rdparty/caffe/.build_release/src
 )
 
-add_executable(${PROJECT_NAME} src/openpose_ros_node.cpp)
+add_executable(${PROJECT_NAME} src/openpose_node.cpp)
 
 # Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}

@@ -5,8 +5,8 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
-from openpose_ros_srvs.srv import DetectPeoplePoseFromImg
-from openpose_ros_msgs.msg import Persons, PersonDetection, BodyPartDetection
+from openpose_srvs.srv import DetectPeoplePoseFromImg
+from openpose_msgs.msg import Persons, PersonDetection, BodyPartDetection
 from math import sqrt, pow, fabs, atan2, pi
 from enum import IntEnum
 import csv
@@ -63,7 +63,7 @@ class OpenPoseGossip():
         rospack = rospkg.RosPack()
 
         # get the file path for rospy_tutorials
-        package_path=rospack.get_path('openpose_ros_examples')
+        package_path=rospack.get_path('openpose_examples')
 
         _bridge = CvBridge()
 

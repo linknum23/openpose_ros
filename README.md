@@ -1,3 +1,5 @@
+# TODO: This is completely untested but now it uses way better ros conventions. Come back to this if better openpose ros package doesn't work out.
+
 # openpose-ros
 CMU's Openpose for ROS
 
@@ -40,7 +42,7 @@ $ sudo apt-get install ros-indigo-image-common ros-indigo-vision-opencv ros-indi
 
 ```
 $ cd src
-$ git clone https://github.com/ildoonet/ros-openpose
+$ git clone https://github.com/linknum23/openpose_ros
 $ cd ..
 $ catkin_make
 ```
@@ -60,9 +62,9 @@ $ catkin_make
 
 ### Broadcast
 
-+ /openpose/pose : [Msg](https://github.com/ildoonet/ros-openpose/blob/master/openpose_ros_msgs/msg/Persons.msg)
-   + [Persons](https://github.com/ildoonet/ros-openpose/blob/master/openpose_ros_msgs/msg/PersonDetection.msg)
-     + [BodyPartDetection](https://github.com/ildoonet/ros-openpose/blob/master/openpose_ros_msgs/msg/PersonDetection.msg) 
++ /openpose/pose : [Msg](https://github.com/linknum23/openpose_ros/blob/master/openpose_msgs/msg/Persons.msg)
+   + [Persons](https://github.com/linknum23/openpose_ros/blob/master/openpose_msgs/msg/PersonDetection.msg)
+     + [BodyPartDetection](https://github.com/linknum23/openpose_ros/blob/master/openpose_msgs/msg/PersonDetection.msg) 
 
 BodyParts are stored as indexed 
     Nose = 0
@@ -89,7 +91,7 @@ BodyParts are stored as indexed
 ### Launch File Example
 
 ```
-<node name="openpose_ros_node" pkg="openpose_ros_node" type="openpose_ros_node" output="screen" required="true">
+<node name="openpose_node" pkg="openpose_node" type="openpose_node" output="screen" required="true">
         <param name="camera" value="/videofile/image_raw" />
         <param name="result_image_topic" value="/openpose/image_raw" />
         <param name="resolution" value="480x320" />
@@ -101,10 +103,10 @@ BodyParts are stored as indexed
 ### Test with Camera/Video Files
 
 ```
-$ roslaunch openpose_ros_node videostream.launch video:=0 video_visualize:=true
-$ roslaunch openpose_ros_node videostream.launch video:=${filepath} video_visualize:=true
+$ roslaunch openpose_node videostream.launch video:=0 video_visualize:=true
+$ roslaunch openpose_node videostream.launch video:=${filepath} video_visualize:=true
 ```
 
 ### USB Camera Example
 
-See [/launch/videostream](https://github.com/ildoonet/ros-openpose/blob/master/openpose_ros_node/launch/videostream.launch).
+See [/launch/videostream](https://github.com/linknum23/openpose_ros/blob/master/openpose_node/launch/videostream.launch).

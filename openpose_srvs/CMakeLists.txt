@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(openpose_ros_srvs)
+project(openpose_srvs)
 
 ## Add support for C++11, supported in ROS Kinetic and newer
 add_definitions(-std=c++11)
@@ -9,7 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   sensor_msgs
-  openpose_ros_msgs
+  openpose_msgs
   message_generation
 )
 
@@ -21,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 
 generate_messages(
-  DEPENDENCIES std_msgs openpose_ros_msgs sensor_msgs
+  DEPENDENCIES std_msgs openpose_msgs sensor_msgs
 )
 
 catkin_package(

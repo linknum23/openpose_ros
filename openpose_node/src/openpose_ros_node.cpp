@@ -43,12 +43,12 @@
 
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
-#include <openpose_ros_msgs/Persons.h>
-#include <openpose_ros_msgs/BodyPartDetection.h>
-#include <openpose_ros_msgs/PersonDetection.h>
-#include "openpose_ros_common.hpp"
+#include <openpose_msgs/Persons.h>
+#include <openpose_msgs/BodyPartDetection.h>
+#include <openpose_msgs/PersonDetection.h>
+#include "openpose_common.hpp"
 
-#include "openpose_ros_srvs/DetectPeoplePoseFromImg.h"
+#include "openpose_srvs/DetectPeoplePoseFromImg.h"
 
 image_transport::Publisher publish_result;
 ros::Publisher publish_pose;
@@ -361,7 +361,7 @@ int init_openpose()
 }
 
 
-openpose_ros_msgs::Persons processImgForPoseDetection(cv_bridge::CvImagePtr &cv_ptr){
+openpose_msgs::Persons processImgForPoseDetection(cv_bridge::CvImagePtr &cv_ptr){
     ros::Time t = ros::Time::now();
     std::vector<float> scaleRatios;
     // process
@@ -392,7 +392,7 @@ openpose_ros_msgs::Persons processImgForPoseDetection(cv_bridge::CvImagePtr &cv_
 
 
     // publish annotations.
-    openpose_ros_msgs::Persons persons;
+    openpose_msgs::Persons persons;
     persons.rostime = t;
     persons.image_w = outputSize.x;
     persons.image_h = outputSize.y;
@@ -401,10 +401,10 @@ openpose_ros_msgs::Persons processImgForPoseDetection(cv_bridge::CvImagePtr &cv_
     const int num_bodyparts = poseKeypoints.getSize(1);
 
     for (size_t person_idx = 0; person_idx < num_people; person_idx++) {
-        openpose_ros_msgs::PersonDetection person;
+        openpose_msgs::PersonDetection person;
         for (size_t bodypart_idx = 0; bodypart_idx < num_bodyparts; bodypart_idx++) {
             size_t final_idx = 3*(person_idx*num_bodyparts + bodypart_idx);
-            openpose_ros_msgs::BodyPartDetection bodypart;
+            openpose_msgs::BodyPartDetection bodypart;
             bodypart.part_id = bodypart_idx;
             bodypart.x = poseKeypoints[final_idx];
             bodypart.y = poseKeypoints[final_idx+1];
@@ -448,8 +448,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
 }
 
-bool peoplePoseFromImg(openpose_ros_srvs::DetectPeoplePoseFromImg::Request  &req,
-         openpose_ros_srvs::DetectPeoplePoseFromImg::Response &res)
+bool peoplePoseFromImg(openpose_srvs::DetectPeoplePoseFromImg::Request  &req,
+         openpose_srvs::DetectPeoplePoseFromImg::Response &res)
 {
     cv_bridge::CvImagePtr cv_ptr;
     try {
@@ -459,14 +459,14 @@ bool peoplePoseFromImg(openpose_ros_srvs::DetectPeoplePoseFromImg::Request  &req
     }
     if (cv_ptr->image.empty()) return false;
     
-    openpose_ros_msgs::Persons persons=processImgForPoseDetection(cv_ptr);
+    openpose_msgs::Persons persons=processImgForPoseDetection(cv_ptr);
     res.personList=persons;
     return true;
 }
 
 int main(int argc, char *argv[])
 {
-    ros::init(argc, argv, "openpose_ros_node");
+    ros::init(argc, argv, "openpose_node");
     ros::NodeHandle local_nh("~");
 
     FLAGS_resolution = getParam(local_nh, "resolution", std::string("640x480"));
@@ -491,7 +491,7 @@ int main(int argc, char *argv[])
     if (!FLAGS_result_image_topic.empty()) {
         publish_result = img_t.advertise(FLAGS_result_image_topic, 1);
     }
-    publish_pose = nh.advertise<openpose_ros_msgs::Persons>("/openpose/pose", 1);
+    publish_pose = nh.advertise<openpose_msgs::Persons>("/openpose/pose", 1);
     pose_srv = nh.advertiseService("people_pose_from_img", peoplePoseFromImg);
 
     ros::spin();

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-    <node name="openpose_ros_node" pkg="openpose_ros_node" type="openpose_ros_node" output="screen" required="true">
+    <node name="openpose_node" pkg="openpose_node" type="openpose_node" output="screen" required="true">
         <param name="camera" value="/videofile/image_raw" />
         <param name="result_image_topic" value="/openpose/image_raw" />
 <!--

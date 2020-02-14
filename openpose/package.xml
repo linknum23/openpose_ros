@@ -1,5 +1,5 @@
 <package>
-  <name>openpose_ros</name>
+  <name>openpose</name>
   <version>0.0.1</version>
   <description>ROS Message Package for CMU's Openpose</description>
 
@@ -13,8 +13,8 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <!-- Dependencies needed after this package is compiled. -->
-  <run_depend>openpose_ros_msgs</run_depend>
-  <run_depend>openpose_ros_node</run_depend>
+  <run_depend>openpose_msgs</run_depend>
+  <run_depend>openpose_node</run_depend>
 
   <export>
     <metapackage/>

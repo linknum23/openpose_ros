@@ -5,7 +5,7 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
-from openpose_ros_srvs.srv import DetectPeoplePoseFromImg
+from openpose_srvs.srv import DetectPeoplePoseFromImg
 
 import rospkg
 
@@ -16,7 +16,7 @@ def LoadImgAndPublish():
     rospack = rospkg.RosPack()
 
     # get the file path for rospy_tutorials
-    package_path=rospack.get_path('openpose_ros_examples')
+    package_path=rospack.get_path('openpose_examples')
     
     _bridge = CvBridge()
     
